@@ -1,7 +1,7 @@
-rootProject.name = "labymod4-addon-template"
+rootProject.name = "teamspeak"
 
 pluginManagement {
-    val labyGradlePluginVersion = "0.3.11"
+    val labyGradlePluginVersion = "0.3.16"
     plugins {
         id("net.labymod.gradle") version (labyGradlePluginVersion)
     }
@@ -11,6 +11,7 @@ pluginManagement {
             maven("https://dist.labymod.net/api/v1/maven/release/")
             maven("https://repo.spongepowered.org/repository/maven-public")
             mavenCentral()
+            mavenLocal()
         }
 
         dependencies {

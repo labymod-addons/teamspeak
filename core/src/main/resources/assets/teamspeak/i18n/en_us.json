@@ -1,0 +1,39 @@
+{
+  "teamspeak": {
+    "settings": {
+      "name": "TeamSpeak",
+      "enabled": {
+        "name": "Enabled"
+      },
+      "resolveAPIKey": {
+        "name": "Resolve API Key",
+        "description": "Automatically tries to resolve your API Key"
+      },
+      "apiKey": {
+        "name": "API Key",
+        "description": "The TeamSpeak API Key can be found by following these steps: Open TeamSpeak -> Click on Tools -> Options -> Addons -> My Addons -> Search for the \"ClientQuery\" Addon -> Click on Settings and copy the API Key from the text field."
+      }
+    },
+    "hudWidget": {
+      "teamSpeak": {
+        "name": "TeamSpeak",
+        "notConnected": "Could not connect to TeamSpeak",
+        "displayAwayMessage": {
+          "name": "Display Away Message"
+        },
+        "prettyChannelName": {
+          "name": "Pretty Channel Name",
+          "description": "Removes the [lspacer], [rspacer], [cspacer] & [*spacer] prefix from channel names"
+        },
+        "displayServerQueries": {
+          "name": "Display Server Queries"
+        },
+        "header": {
+          "authentication": {
+            "name": "Authentication"
+          }
+        }
+      }
+    }
+  }
+}

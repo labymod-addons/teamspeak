@@ -48,7 +48,8 @@ public class TeamSpeakAuthenticator {
     }
   }
 
-  public void authenticate() {
+  public boolean authenticate() {
+    boolean triedAuthenticating = false;
     for (Path possibleDirectory : this.possibleDirectories) {
       Path clientQueryPath = possibleDirectory.resolve("clientquery.ini");
       if (!IOUtil.exists(clientQueryPath)) {
@@ -66,11 +67,14 @@ public class TeamSpeakAuthenticator {
 
           String apiKey = line.substring("api_key=".length()).replace("\r", "");
           this.teamSpeakAPI.authenticate(apiKey);
+          triedAuthenticating = true;
         }
       } catch (IOException e) {
         e.printStackTrace();
       }
     }
+
+    return triedAuthenticating;
   }
 
   private void loadWindowsDirectories() {

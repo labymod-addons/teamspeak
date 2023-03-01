@@ -93,8 +93,9 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
     }
 
     this.manualStop = false;
-    this.requests.clear();
     this.invalidKey = false;
+    this.reset();
+
     try {
       this.teamSpeak.logger().info("Connecting to TeamSpeak client...");
       this.socket = new Socket("127.0.0.1", 25639);
@@ -153,7 +154,9 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
     TeamSpeakConfiguration configuration = this.teamSpeak.configuration();
     if (configuration.resolveAPIKey().get()) {
-      this.authenticator.authenticate();
+      if (!this.authenticator.authenticate()) {
+        this.invalidKey = true;
+      }
     } else {
       String apiKey = configuration.apiKey().get().trim();
       if (apiKey.isEmpty()) {
@@ -346,6 +349,10 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
     this.manualStop = true;
     this.socket.close();
     this.connected = false;
+    this.reset();
+  }
+
+  private void reset() {
     this.controller.getServers().clear();
     this.controller.setSelectedServer(null);
     this.clientId = 0;

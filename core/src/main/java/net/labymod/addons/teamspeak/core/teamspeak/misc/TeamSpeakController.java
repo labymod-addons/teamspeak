@@ -222,8 +222,11 @@ public class TeamSpeakController {
           "path=",
           channelConnectInfoAnswer -> {
             String[] s = channelConnectInfoAnswer.split(" ");
-            String name = this.get(s, "path", String.class);
-            if (name != null) {
+            String path = this.get(s, "path", String.class);
+            if (path != null) {
+              String[] splitPath = path.split("\\\\/");
+              String name = splitPath[splitPath.length - 1];
+
               for (DefaultChannel channel : server.getDefaultChannels()) {
                 if (name.equals(channel.getName())) {
                   server.setSelectedChannel(channel);

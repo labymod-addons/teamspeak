@@ -64,7 +64,9 @@ public class ClientMovedListener extends DefaultListener {
           "path=",
           channelConnectInfoAnswer -> {
             String path = this.get(channelConnectInfoAnswer, "path", String.class);
-            finalChannel.setName(path);
+            String[] splitPath = path.split("\\\\/");
+            String name = splitPath[splitPath.length - 1];
+            finalChannel.setName(name);
             selectedServer.setSelectedChannel(finalChannel);
             teamSpeakAPI.controller().refreshUsers(finalChannel);
           }

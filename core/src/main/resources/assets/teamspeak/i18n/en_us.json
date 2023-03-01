@@ -18,6 +18,10 @@
       "teamSpeak": {
         "name": "TeamSpeak",
         "notConnected": "Could not connect to TeamSpeak",
+        "invalidKey": "TeamSpeak denied the connection. Please manually supply the API key in the TeamSpeak Addon settings.",
+        "invalidKeyManual": "TeamSpeak denied the connection. Please make sure the API key is correct.",
+        "noSelectedServer": "You are not connected to a server.",
+        "noSelectedChannel": "You are not connected to a channel.",
         "displayAwayMessage": {
           "name": "Display Away Message"
         },

@@ -22,6 +22,7 @@ import net.labymod.addons.teamspeak.api.TeamSpeakAPI;
 import net.labymod.addons.teamspeak.api.models.Channel;
 import net.labymod.addons.teamspeak.api.models.Server;
 import net.labymod.addons.teamspeak.api.models.User;
+import net.labymod.addons.teamspeak.core.TeamSpeak;
 import net.labymod.addons.teamspeak.core.hud.TeamSpeakHudWidget.TeamSpeakHudWidgetConfig;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultChannel;
 import net.labymod.addons.teamspeak.core.util.TeamSpeakUserIcon;
@@ -46,13 +47,27 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
 
   private static final Channel DUMMY_CHANNEL = new DummyChannel();
   private static final Component NOT_CONNECTED = Component.translatable(
-      "teamspeak.hudWidget.teamspeak.notConnected"
+      "teamspeak.hudWidget.teamSpeak.notConnected"
+  ).color(NamedTextColor.RED);
+  private static final Component NO_SELECTED_SERVER = Component.translatable(
+      "teamspeak.hudWidget.teamSpeak.noSelectedServer"
+  ).color(NamedTextColor.RED);
+  private static final Component NO_SELECTED_CHANNEL = Component.translatable(
+      "teamspeak.hudWidget.teamSpeak.noSelectedChannel"
+  ).color(NamedTextColor.RED);
+  private static final Component INVALID_KEY = Component.translatable(
+      "teamspeak.hudWidget.teamSpeak.invalidKey"
+  ).color(NamedTextColor.RED);
+  private static final Component INVALID_KEY_MANUAL = Component.translatable(
+      "teamspeak.hudWidget.teamSpeak.invalidKeyManual"
   ).color(NamedTextColor.RED);
 
+  private final TeamSpeak teamSpeak;
   private final TeamSpeakAPI teamSpeakAPI;
 
-  public TeamSpeakHudWidget(TeamSpeakAPI teamSpeakAPI) {
+  public TeamSpeakHudWidget(TeamSpeak teamSpeak, TeamSpeakAPI teamSpeakAPI) {
     super("teamSpeak", TeamSpeakHudWidgetConfig.class);
+    this.teamSpeak = teamSpeak;
     this.teamSpeakAPI = teamSpeakAPI;
   }
 
@@ -73,28 +88,32 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
       return;
     }
 
-    boolean connected = this.teamSpeakAPI.isConnected();
-    if (!connected) {
-      RenderableComponent notConnected = RenderableComponent.of(NOT_CONNECTED);
-      if (stack != null) {
-        this.labyAPI.renderPipeline().componentRenderer().builder()
-            .text(notConnected)
-            .pos(1, 1)
-            .render(stack);
+    if (!this.teamSpeakAPI.isConnected()) {
+      this.renderErrorComponent(NOT_CONNECTED, stack, size);
+      return;
+    }
+
+    if (this.teamSpeakAPI.hasInvalidKey()) {
+      Component component;
+      if (this.teamSpeak.configuration().resolveAPIKey().get()) {
+        component = INVALID_KEY;
+      } else {
+        component = INVALID_KEY_MANUAL;
       }
 
-      size.setWidth((int) (notConnected.getWidth() + 2));
-      size.setHeight((int) (notConnected.getHeight() + 2));
+      this.renderErrorComponent(component, stack, size);
       return;
     }
 
     Server selectedServer = this.teamSpeakAPI.getSelectedServer();
     if (selectedServer == null) {
+      this.renderErrorComponent(NO_SELECTED_SERVER, stack, size);
       return;
     }
 
     Channel selectedChannel = selectedServer.getSelectedChannel();
     if (selectedChannel == null) {
+      this.renderErrorComponent(NO_SELECTED_CHANNEL, stack, size);
       return;
     }
 
@@ -110,6 +129,19 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
     Server selectedServer = this.teamSpeakAPI.getSelectedServer();
     return (selectedServer != null && selectedServer.getSelectedChannel() != null)
         || Laby.references().chatAccessor().isChatOpen();
+  }
+
+  private void renderErrorComponent(Component component, Stack stack, HudSize size) {
+    RenderableComponent renderableComponent = RenderableComponent.of(component);
+    if (stack != null) {
+      this.labyAPI.renderPipeline().componentRenderer().builder()
+          .text(renderableComponent)
+          .pos(1, 1)
+          .render(stack);
+    }
+
+    size.setWidth((int) (renderableComponent.getWidth() + 2));
+    size.setHeight((int) (renderableComponent.getHeight() + 2));
   }
 
   private void renderChannel(Channel channel, Stack stack, HudSize size) {

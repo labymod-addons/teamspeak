@@ -22,6 +22,7 @@ import net.labymod.addons.teamspeak.api.util.ArgumentParser;
 public abstract class Listener {
 
   private final String identifier;
+  private boolean register = true;
 
   protected Listener(String identifier) {
     this.identifier = identifier;
@@ -39,5 +40,13 @@ public abstract class Listener {
 
   public String getIdentifier() {
     return this.identifier;
+  }
+
+  public boolean needsToBeRegistered() {
+    return this.register;
+  }
+
+  protected void registerNotify(boolean register) {
+    this.register = register;
   }
 }

@@ -48,7 +48,7 @@ public class TeamSpeak extends LabyAddon<TeamSpeakConfiguration> {
       }).start();
     }
 
-    this.labyAPI().hudWidgetRegistry().register(new TeamSpeakHudWidget(teamSpeakAPI));
+    this.labyAPI().hudWidgetRegistry().register(new TeamSpeakHudWidget(this, teamSpeakAPI));
   }
 
   @Override

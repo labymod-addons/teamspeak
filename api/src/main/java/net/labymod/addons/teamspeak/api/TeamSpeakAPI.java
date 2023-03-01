@@ -17,8 +17,8 @@
 package net.labymod.addons.teamspeak.api;
 
 import java.util.List;
-import java.util.function.Consumer;
 import net.labymod.addons.teamspeak.api.models.Server;
+import net.labymod.addons.teamspeak.api.util.Request;
 import net.labymod.api.reference.annotation.Referenceable;
 
 @Referenceable
@@ -26,7 +26,11 @@ public interface TeamSpeakAPI {
 
   boolean isConnected();
 
-  void request(String query, int expectedResponses, Consumer<String> answer);
+  boolean hasInvalidKey();
+
+  void request(Request request);
+
+  void query(String query);
 
   Server getSelectedServer();
 
@@ -35,8 +39,4 @@ public interface TeamSpeakAPI {
   Server getServer(int id);
 
   int getClientId();
-
-  default void request(String query, Consumer<String> answer) {
-    this.request(query, 1, answer);
-  }
 }

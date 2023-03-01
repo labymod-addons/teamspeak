@@ -21,16 +21,16 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintWriter;
+import java.net.ConnectException;
 import java.net.Socket;
-import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 import javax.inject.Singleton;
 import net.labymod.addons.teamspeak.api.TeamSpeakAPI;
 import net.labymod.addons.teamspeak.api.listener.Listener;
 import net.labymod.addons.teamspeak.api.models.Server;
+import net.labymod.addons.teamspeak.api.util.Request;
 import net.labymod.addons.teamspeak.core.TeamSpeak;
 import net.labymod.addons.teamspeak.core.TeamSpeakConfiguration;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.ClientEnterViewListener;
@@ -41,6 +41,7 @@ import net.labymod.addons.teamspeak.core.teamspeak.listener.ConnectStatusChange;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.CurrentServerConnectionChangedListener;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.SelectedListener;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.TalkStatusChangeListener;
+import net.labymod.addons.teamspeak.core.teamspeak.misc.ReconnectController;
 import net.labymod.addons.teamspeak.core.teamspeak.misc.TeamSpeakController;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultServer;
 import net.labymod.api.models.Implements;
@@ -51,27 +52,29 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
   private final TeamSpeakAuthenticator authenticator;
   private final TeamSpeakController controller;
+  private final ReconnectController reconnectController;
   private final TeamSpeak teamSpeak;
   private final List<Listener> listeners;
+
+  private final List<Request> requests;
   private Socket socket;
   private PrintWriter outputStream;
   private BufferedReader inputStream;
 
   private boolean connected;
 
-  private Consumer<String> answerConsumer;
-  private int expectedAnswerCount;
-  private boolean ignoreNext;
-
   private int clientId;
   private int channelId;
 
   private boolean manualStop;
+  private boolean invalidKey;
 
   public DefaultTeamSpeakAPI(TeamSpeak teamSpeak) {
     this.teamSpeak = teamSpeak;
     this.authenticator = new TeamSpeakAuthenticator(teamSpeak, this);
     this.controller = new TeamSpeakController(this);
+    this.reconnectController = new ReconnectController(this);
+    this.requests = new ArrayList<>();
     this.listeners = new ArrayList<>();
 
     this.listeners.add(new ClientMovedListener());
@@ -90,7 +93,17 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
     }
 
     this.manualStop = false;
-    this.socket = new Socket("127.0.0.1", 25639);
+    this.requests.clear();
+    this.invalidKey = false;
+    try {
+      this.teamSpeak.logger().info("Connecting to TeamSpeak client...");
+      this.socket = new Socket("127.0.0.1", 25639);
+    } catch (ConnectException e) {
+      this.teamSpeak.logger().warn("Could not connect to TeamSpeak client!");
+      this.reconnectController.start();
+      return;
+    }
+
     this.outputStream = new PrintWriter(
         new OutputStreamWriter(this.socket.getOutputStream(), StandardCharsets.UTF_8),
         true
@@ -106,6 +119,14 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
           this.outputStream.println("whoami");
           if (this.outputStream.checkError()) {
             this.updateConnected(false);
+
+            try {
+              this.socket.close();
+            } catch (IOException e) {
+              e.printStackTrace();
+            }
+            this.teamSpeak.logger().warn("3Connection to TeamSpeak client lost.");
+            this.reconnectController.start();
             return;
           }
         }
@@ -119,6 +140,14 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
       if (!this.manualStop) {
         this.updateConnected(false);
+
+        try {
+          this.socket.close();
+        } catch (IOException e) {
+          e.printStackTrace();
+        }
+        this.teamSpeak.logger().warn("1Connection to TeamSpeak client lost.");
+        this.reconnectController.start();
       }
     }).start();
 
@@ -135,7 +164,8 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
     }
 
     this.updateConnected(true);
-    this.outputStream.println("clientnotifyregister schandlerid=0 event=any");
+    this.clientNotifyRegister(0);
+    this.teamSpeak.logger().info("Successfully connected to the TeamSpeak client.");
 
     while (!this.manualStop && this.socket.isConnected() && !this.socket.isClosed()) {
       String line = null;
@@ -147,26 +177,27 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
         }
 
         Thread.sleep(100L);
-      } catch (SocketException e) {
-        System.out.println("Just tried to read from closed socket..");
       } catch (Exception e) {
-        System.out.println("Last message: " + line);
         e.printStackTrace();
       }
     }
 
     if (!this.manualStop) {
       this.updateConnected(false);
+
+      try {
+        this.socket.close();
+      } catch (IOException e) {
+        e.printStackTrace();
+      }
+
+      this.teamSpeak.logger().warn("2Connection to TeamSpeak client lost.");
+      this.reconnectController.start();
     }
   }
 
   private void messageReceived(String line) {
     if (line.isEmpty()) {
-      return;
-    }
-
-    if (this.ignoreNext) {
-      this.ignoreNext = false;
       return;
     }
 
@@ -186,35 +217,20 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
     }
 
     boolean ok = line.equals("error id=0 msg=ok");
-    if (this.answerConsumer != null && this.expectedAnswerCount != 0) {
-      if (ok) {
-        if (this.expectedAnswerCount == -1) {
-          this.answerConsumer = null;
-        }
-
-        return;
+    Request[] requests = this.requests.toArray(new Request[0]);
+    boolean handledRequest = false;
+    for (Request request : requests) {
+      if (request.isFinished()) {
+        this.requests.remove(request);
+        continue;
       }
 
-      if (s[0].equals("error")) {
-        this.answerConsumer.accept("error: " + s[2].substring(4).replace("\\s", " "));
-        this.answerConsumer = null;
-        return;
+      if (request.handle(s[0], line)) {
+        handledRequest = true;
       }
-
-      Consumer<String> consumer = this.answerConsumer;
-      if (this.expectedAnswerCount != -1) {
-        this.expectedAnswerCount--;
-      }
-
-      consumer.accept(line);
-      if (this.expectedAnswerCount == 0 && this.answerConsumer == consumer) {
-        this.answerConsumer = null;
-      }
-
-      return;
     }
 
-    if (ok) {
+    if (ok || handledRequest) {
       return;
     }
 
@@ -228,6 +244,21 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
   @Override
   public boolean isConnected() {
     return this.connected;
+  }
+
+  public void clientNotifyRegister(int id) {
+    for (Listener listener : this.listeners) {
+      if (!listener.needsToBeRegistered()) {
+        continue;
+      }
+
+      this.outputStream.println(
+          "clientnotifyregister schandlerid=" + id + " event=" + listener.getIdentifier());
+    }
+  }
+
+  public boolean isRunning() {
+    return this.socket != null;
   }
 
   public PrintWriter getOutputStream() {
@@ -252,13 +283,30 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
   }
 
   @Override
-  public void request(String query, int expectedResponses, Consumer<String> answer) {
-    if (this.answerConsumer != null) {
-      this.ignoreNext = true;
+  public boolean hasInvalidKey() {
+    return this.invalidKey;
+  }
+
+  public void setInvalidKey(boolean invalidKey) {
+    this.invalidKey = invalidKey;
+  }
+
+  @Override
+  public void request(Request request) {
+    String query = request.getQuery();
+    Request[] pendingRequests = this.requests.toArray(new Request[0]);
+    for (Request pendingRequest : pendingRequests) {
+      if (pendingRequest.getQuery().equals(query)) {
+        this.requests.remove(pendingRequest);
+      }
     }
 
-    this.expectedAnswerCount = expectedResponses;
-    this.answerConsumer = answer;
+    this.requests.add(request);
+    this.query(query);
+  }
+
+  @Override
+  public void query(String query) {
     this.outputStream.println(query);
   }
 
@@ -280,6 +328,10 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
   @Override
   public int getClientId() {
     return this.clientId;
+  }
+
+  public List<Request> getRequests() {
+    return this.requests;
   }
 
   public TeamSpeakController controller() {

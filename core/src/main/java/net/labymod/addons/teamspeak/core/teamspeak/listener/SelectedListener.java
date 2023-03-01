@@ -16,6 +16,7 @@
 
 package net.labymod.addons.teamspeak.core.teamspeak.listener;
 
+import net.labymod.addons.teamspeak.api.util.Request;
 import net.labymod.addons.teamspeak.core.teamspeak.DefaultTeamSpeakAPI;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultServer;
 
@@ -23,19 +24,28 @@ public class SelectedListener extends DefaultListener {
 
   public SelectedListener() {
     super("selected");
+    this.registerNotify(false);
   }
 
   @Override
   public void execute(DefaultTeamSpeakAPI teamSpeakAPI, String[] args) {
     Integer selectedSchandlerId = this.get(args, "schandlerid", Integer.class);
-    teamSpeakAPI.request("serverconnectionhandlerlist", schandlerListAnswer -> {
-      String[] split = schandlerListAnswer.split("\\|");
-      for (String schandlerAnswer : split) {
-        Integer schandlerId = this.get(schandlerAnswer, "schandlerid", Integer.class);
-        if (schandlerId == null) {
-          continue;
-        }
+    teamSpeakAPI.request(Request.unknown("serverconnectionhandlerlist", schandlerListAnswer -> {
+      if (schandlerListAnswer.equals("error id=1538 msg=invalid\\sparameter")) {
+        teamSpeakAPI.setInvalidKey(true);
+        return true;
+      }
 
+      teamSpeakAPI.setInvalidKey(false);
+      String[] schandlers = schandlerListAnswer.split("\\|");
+      for (String schandler : schandlers) {
+        if (!schandler.startsWith("schandlerid=")) {
+          return false;
+        }
+      }
+
+      for (String schandler : schandlers) {
+        Integer schandlerId = this.get(schandler, "schandlerid", Integer.class);
         DefaultServer server = teamSpeakAPI.getServer(schandlerId);
         if (server == null) {
           server = new DefaultServer(schandlerId);
@@ -46,6 +56,8 @@ public class SelectedListener extends DefaultListener {
       if (selectedSchandlerId != null) {
         teamSpeakAPI.controller().refreshCurrentServer0(selectedSchandlerId);
       }
-    });
+
+      return true;
+    }));
   }
 }

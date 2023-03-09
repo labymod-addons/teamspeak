@@ -35,6 +35,7 @@ import net.labymod.api.client.gui.hud.hudwidget.SimpleHudWidget;
 import net.labymod.api.client.gui.hud.position.HudSize;
 import net.labymod.api.client.gui.icon.Icon;
 import net.labymod.api.client.gui.mouse.MutableMouse;
+import net.labymod.api.client.gui.screen.widget.widgets.input.SliderWidget.SliderSetting;
 import net.labymod.api.client.gui.screen.widget.widgets.input.SwitchWidget.SwitchSetting;
 import net.labymod.api.client.render.font.ComponentRenderer;
 import net.labymod.api.client.render.font.RenderableComponent;
@@ -173,12 +174,20 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
     y += channelName.getHeight() + 1;
     int rowHeight = (int) componentRenderer.height();
 
-    for (User user : channel.getUsers()) {
+    int maxUserIndex = this.config.maxDisplayedClients.get() - 1;
+    List<User> users = channel.getUsers();
+    int userIndex = 0;
+    for (User user : users) {
+      if (userIndex > maxUserIndex) {
+        break;
+      }
+
       if (user.getNickname() == null || (user.isQuery()
           && !this.config.displayServerQueries.get())) {
         continue;
       }
 
+      userIndex++;
       int userX = x + 2;
       if (stack != null) {
         Icon icon = TeamSpeakUserIcon.of(user).icon();
@@ -226,6 +235,9 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
 
     @SwitchSetting
     private final ConfigProperty<Boolean> displayServerQueries = new ConfigProperty<>(false);
+
+    @SliderSetting(min = 3, max = 100)
+    private final ConfigProperty<Integer> maxDisplayedClients = new ConfigProperty<>(15);
   }
 
   private static class DummyChannel implements Channel {

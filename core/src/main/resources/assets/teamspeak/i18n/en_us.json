@@ -36,6 +36,9 @@
         },
         "displayServerQueries": {
           "name": "Display Server Queries"
+        },
+        "maxDisplayedClients": {
+          "name": "Displayed Users"
         }
       }
     }

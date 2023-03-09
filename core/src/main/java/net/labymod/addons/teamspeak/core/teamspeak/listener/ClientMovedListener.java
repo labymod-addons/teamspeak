@@ -63,7 +63,8 @@ public class ClientMovedListener extends DefaultListener {
           "channelconnectinfo",
           "path=",
           channelConnectInfoAnswer -> {
-            String path = this.get(channelConnectInfoAnswer, "path", String.class);
+            String[] split = channelConnectInfoAnswer.split(" ");
+            String path = this.get(split, "path", String.class);
             String[] splitPath = path.split("\\\\/");
             String name = splitPath[splitPath.length - 1];
             finalChannel.setName(name);

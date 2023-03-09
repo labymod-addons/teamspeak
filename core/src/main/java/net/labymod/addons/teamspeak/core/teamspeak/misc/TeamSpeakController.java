@@ -221,8 +221,8 @@ public class TeamSpeakController {
           "channelconnectinfo",
           "path=",
           channelConnectInfoAnswer -> {
-            String[] s = channelConnectInfoAnswer.split(" ");
-            String path = this.get(s, "path", String.class);
+            String[] split = channelConnectInfoAnswer.split(" ");
+            String path = this.get(split, "path", String.class);
             if (path != null) {
               String[] splitPath = path.split("\\\\/");
               String name = splitPath[splitPath.length - 1];

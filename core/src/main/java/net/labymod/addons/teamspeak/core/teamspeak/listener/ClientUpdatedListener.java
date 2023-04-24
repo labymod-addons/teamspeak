@@ -16,6 +16,7 @@
 
 package net.labymod.addons.teamspeak.core.teamspeak.listener;
 
+import net.labymod.addons.teamspeak.api.util.ArgumentParser;
 import net.labymod.addons.teamspeak.core.teamspeak.DefaultTeamSpeakAPI;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultChannel;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultServer;
@@ -49,7 +50,7 @@ public class ClientUpdatedListener extends DefaultListener {
     // update nickname
     String clientNickname = this.get(args, "client_nickname", String.class);
     if (clientNickname != null) {
-      user.setNickname(clientNickname);
+      user.setNickname(ArgumentParser.unescape(clientNickname));
       return;
     }
 

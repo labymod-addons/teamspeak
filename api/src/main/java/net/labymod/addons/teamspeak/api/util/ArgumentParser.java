@@ -49,4 +49,70 @@ public class ArgumentParser {
 
     return clazz.cast(value);
   }
+
+  public static String unescape(String value) {
+    return unescapeChannelName(value).replace("\\/", "/");
+  }
+
+  private static String unescapeChannelName(String channelName) {
+    StringBuilder result = new StringBuilder();
+    boolean escapeNextChar = false;
+
+    for (int i = 0; i < channelName.length(); i++) {
+      char currentChar = channelName.charAt(i);
+
+      if (escapeNextChar) {
+        // Handle escaped characters
+        switch (currentChar) {
+          case 's':
+            result.append(' ');
+            break;
+          case '/':
+            result.append("/");
+            break;
+          case '\\':
+            result.append('\\');
+            break;
+          case 'p':
+            result.append('|');
+            break;
+          case 'a':
+            result.append('\u0007');
+            break;
+          case 'b':
+            result.append('\u0008');
+            break;
+          case 'f':
+            result.append('\u000C');
+            break;
+          case 'n':
+            result.append('\n');
+            break;
+          case 'r':
+            result.append('\r');
+            break;
+          case 't':
+            result.append('\t');
+            break;
+          case 'v':
+            result.append('\u000B');
+            break;
+          default:
+            result.append('\\');
+            result.append(currentChar);
+            break;
+        }
+
+        escapeNextChar = false;
+      } else if (currentChar == '\\') {
+        // Escape character detected, set flag to handle next character as escaped
+        escapeNextChar = true;
+      } else {
+        // Regular character, append to result
+        result.append(currentChar);
+      }
+    }
+
+    return result.toString();
+  }
 }

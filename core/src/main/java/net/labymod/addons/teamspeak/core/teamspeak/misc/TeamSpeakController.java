@@ -72,6 +72,34 @@ public class TeamSpeakController {
     this.refreshUsers(channel, null);
   }
 
+  public static String getLastChannel(int start, String path) {
+    int possibleSplit = path.lastIndexOf("\\/", start);
+    if (possibleSplit == -1) {
+      return path;
+    }
+
+    if (possibleSplit == 0) {
+      return path;
+    }
+
+    if (path.charAt(possibleSplit - 1) == '\\') {
+      return getLastChannel(possibleSplit - 1, path);
+    }
+
+    return path.substring(possibleSplit + 2);
+  }
+
+  public void refreshCurrentServer(int schandlerId) {
+    this.teamSpeakAPI.request(Request.firstParamEquals(
+        "use " + schandlerId,
+        "selected",
+        response -> {
+          this.teamSpeakAPI.query("whoami");
+          this.refreshCurrentServer0(schandlerId);
+        }
+    ));
+  }
+
   public void refreshUsers(DefaultChannel channel, Runnable runnable) {
     this.teamSpeakAPI.request(Request.unknown(
         "channelclientlist cid=" + channel.getId() + " -voice -away",
@@ -98,7 +126,7 @@ public class TeamSpeakController {
             user = channel.addUser(clientId);
             String clientNickname = this.get(client, "client_nickname", String.class);
             if (clientNickname != null) {
-              user.setNickname(clientNickname);
+              user.setNickname(ArgumentParser.unescape(clientNickname));
             }
 
             Integer clientType = this.get(client, "client_type", Integer.class);
@@ -178,15 +206,16 @@ public class TeamSpeakController {
         }));
   }
 
-  public void refreshCurrentServer(int schandlerId) {
-    this.teamSpeakAPI.request(Request.firstParamEquals(
-        "use " + schandlerId,
-        "selected",
-        response -> {
-          this.teamSpeakAPI.query("whoami");
-          this.refreshCurrentServer0(schandlerId);
-        }
-    ));
+  private <T> T get(String[] arguments, String identifier, Class<T> clazz) {
+    return ArgumentParser.parse(arguments, identifier, clazz);
+  }
+
+  private int compareNickName(String firstNickname, String secondNickname) {
+    if (firstNickname == null || secondNickname == null) {
+      return 0;
+    }
+
+    return firstNickname.toLowerCase().compareTo(secondNickname.toLowerCase());
   }
 
   public void refreshCurrentServer0(int schandlerId) {
@@ -224,9 +253,7 @@ public class TeamSpeakController {
             String[] split = channelConnectInfoAnswer.split(" ");
             String path = this.get(split, "path", String.class);
             if (path != null) {
-              String[] splitPath = path.split("\\\\/");
-              String name = splitPath[splitPath.length - 1];
-
+              String name = ArgumentParser.unescape(getLastChannel(path.length(), path));
               for (DefaultChannel channel : server.getDefaultChannels()) {
                 if (name.equals(channel.getName())) {
                   server.setSelectedChannel(channel);
@@ -240,17 +267,5 @@ public class TeamSpeakController {
 
       return true;
     }));
-  }
-
-  private <T> T get(String[] arguments, String identifier, Class<T> clazz) {
-    return ArgumentParser.parse(arguments, identifier, clazz);
-  }
-
-  private int compareNickName(String firstNickname, String secondNickname) {
-    if (firstNickname == null || secondNickname == null) {
-      return 0;
-    }
-
-    return firstNickname.toLowerCase().compareTo(secondNickname.toLowerCase());
   }
 }

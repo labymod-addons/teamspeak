@@ -33,6 +33,7 @@ import net.labymod.addons.teamspeak.api.models.Server;
 import net.labymod.addons.teamspeak.api.util.Request;
 import net.labymod.addons.teamspeak.core.TeamSpeak;
 import net.labymod.addons.teamspeak.core.TeamSpeakConfiguration;
+import net.labymod.addons.teamspeak.core.teamspeak.listener.ChannelEditedListener;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.ClientEnterViewListener;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.ClientLeftViewListener;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.ClientMovedListener;
@@ -85,6 +86,7 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
     this.listeners.add(new ConnectStatusChange());
     this.listeners.add(new ClientLeftViewListener());
     this.listeners.add(new ClientEnterViewListener());
+    this.listeners.add(new ChannelEditedListener());
   }
 
   public void initialize() throws IOException {
@@ -200,6 +202,7 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
   }
 
   private void messageReceived(String line) {
+    //System.out.println("Received: " + line);
     if (line.isEmpty()) {
       return;
     }
@@ -250,6 +253,7 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
   }
 
   public void clientNotifyRegister(int id) {
+    //this.outputStream.println("clientnotifyregister schandlerid=" + id + " event=any");
     for (Listener listener : this.listeners) {
       if (!listener.needsToBeRegistered()) {
         continue;

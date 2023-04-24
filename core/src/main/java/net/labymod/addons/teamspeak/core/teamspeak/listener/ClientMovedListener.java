@@ -17,8 +17,10 @@
 package net.labymod.addons.teamspeak.core.teamspeak.listener;
 
 import net.labymod.addons.teamspeak.api.models.User;
+import net.labymod.addons.teamspeak.api.util.ArgumentParser;
 import net.labymod.addons.teamspeak.api.util.Request;
 import net.labymod.addons.teamspeak.core.teamspeak.DefaultTeamSpeakAPI;
+import net.labymod.addons.teamspeak.core.teamspeak.misc.TeamSpeakController;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultChannel;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultServer;
 
@@ -65,8 +67,8 @@ public class ClientMovedListener extends DefaultListener {
           channelConnectInfoAnswer -> {
             String[] split = channelConnectInfoAnswer.split(" ");
             String path = this.get(split, "path", String.class);
-            String[] splitPath = path.split("\\\\/");
-            String name = splitPath[splitPath.length - 1];
+            String name = ArgumentParser.unescape(
+                TeamSpeakController.getLastChannel(path.length(), path));
             finalChannel.setName(name);
             selectedServer.setSelectedChannel(finalChannel);
             teamSpeakAPI.controller().refreshUsers(finalChannel);

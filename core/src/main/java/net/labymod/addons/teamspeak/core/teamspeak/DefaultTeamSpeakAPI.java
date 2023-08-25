@@ -46,6 +46,7 @@ import net.labymod.addons.teamspeak.core.teamspeak.misc.ReconnectController;
 import net.labymod.addons.teamspeak.core.teamspeak.misc.TeamSpeakController;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultServer;
 import net.labymod.api.models.Implements;
+import net.labymod.api.util.ThreadSafe;
 
 @Singleton
 @Implements(TeamSpeakAPI.class)
@@ -242,7 +243,9 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
     for (Listener listener : this.listeners) {
       if (listener.getIdentifier().equals(s[0])) {
-        listener.execute(this, s);
+        ThreadSafe.executeOnRenderThread(() -> {
+          listener.execute(this, s);
+        });
       }
     }
   }

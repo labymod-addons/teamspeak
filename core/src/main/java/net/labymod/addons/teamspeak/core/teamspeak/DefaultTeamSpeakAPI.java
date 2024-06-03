@@ -26,6 +26,9 @@ import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import javax.inject.Singleton;
 import net.labymod.addons.teamspeak.api.TeamSpeakAPI;
 import net.labymod.addons.teamspeak.api.listener.Listener;
@@ -232,7 +235,7 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
         continue;
       }
 
-      if (request.handle(s[0], line)) {
+      if (this.executeAndWait(() -> request.handle(s[0], line))) {
         handledRequest = true;
       }
     }
@@ -248,6 +251,21 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
         });
       }
     }
+  }
+
+  private <T> T executeAndWait(Supplier<T> supplier) {
+    AtomicReference<T> value = new AtomicReference<>(null);
+    AtomicBoolean executed = new AtomicBoolean(false);
+    ThreadSafe.executeOnRenderThread(() -> {
+      value.set(supplier.get());
+      executed.set(true);
+    });
+
+    while (!executed.get()) {
+      // Wait
+    }
+
+    return value.get();
   }
 
   @Override

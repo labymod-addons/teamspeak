@@ -34,12 +34,11 @@ import net.labymod.api.client.gui.hud.hudwidget.HudWidgetConfig;
 import net.labymod.api.client.gui.hud.hudwidget.SimpleHudWidget;
 import net.labymod.api.client.gui.hud.position.HudSize;
 import net.labymod.api.client.gui.icon.Icon;
-import net.labymod.api.client.gui.mouse.MutableMouse;
+import net.labymod.api.client.gui.screen.ScreenContext;
+import net.labymod.api.client.gui.screen.state.TextFlags;
 import net.labymod.api.client.gui.screen.widget.widgets.input.SliderWidget.SliderSetting;
 import net.labymod.api.client.gui.screen.widget.widgets.input.SwitchWidget.SwitchSetting;
-import net.labymod.api.client.render.font.ComponentRenderer;
 import net.labymod.api.client.render.font.RenderableComponent;
-import net.labymod.api.client.render.matrix.Stack;
 import net.labymod.api.configuration.loader.property.ConfigProperty;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -74,23 +73,22 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
 
   @Override
   public void render(
-      @Nullable Stack stack,
-      MutableMouse mutableMouse,
-      float partialTicks,
+      RenderPhase renderPhase,
+      ScreenContext screenContext,
       boolean isEditorContext,
       HudSize size
   ) {
     // Reset (Updated in renderChannel)
-    size.setWidth(0);
-    size.setHeight(0);
+    size.setWidth(0.0F);
+    size.setHeight(0.0F);
 
     if (isEditorContext) {
-      this.renderChannel(DUMMY_CHANNEL, stack, size);
+      this.renderChannel(DUMMY_CHANNEL, renderPhase, screenContext, size);
       return;
     }
 
     if (!this.teamSpeakAPI.isConnected()) {
-      this.renderErrorComponent(NOT_CONNECTED, stack, size);
+      this.renderErrorComponent(NOT_CONNECTED, renderPhase, screenContext, size);
       return;
     }
 
@@ -102,23 +100,23 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
         component = INVALID_KEY_MANUAL;
       }
 
-      this.renderErrorComponent(component, stack, size);
+      this.renderErrorComponent(component, renderPhase, screenContext, size);
       return;
     }
 
     Server selectedServer = this.teamSpeakAPI.getSelectedServer();
     if (selectedServer == null) {
-      this.renderErrorComponent(NO_SELECTED_SERVER, stack, size);
+      this.renderErrorComponent(NO_SELECTED_SERVER, renderPhase, screenContext, size);
       return;
     }
 
     Channel selectedChannel = selectedServer.getSelectedChannel();
     if (selectedChannel == null) {
-      this.renderErrorComponent(NO_SELECTED_CHANNEL, stack, size);
+      this.renderErrorComponent(NO_SELECTED_CHANNEL, renderPhase, screenContext, size);
       return;
     }
 
-    this.renderChannel(selectedChannel, stack, size);
+    this.renderChannel(selectedChannel, renderPhase, screenContext, size);
   }
 
   @Override
@@ -132,23 +130,35 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
         || Laby.references().chatAccessor().isChatOpen();
   }
 
-  private void renderErrorComponent(Component component, Stack stack, HudSize size) {
+  private void renderErrorComponent(
+      Component component,
+      RenderPhase phase,
+      ScreenContext screenContext,
+      HudSize size
+  ) {
     RenderableComponent renderableComponent = RenderableComponent.of(component);
-    if (stack != null) {
-      this.labyAPI.renderPipeline().componentRenderer().builder()
-          .text(renderableComponent)
-          .pos(1, 1)
-          .render(stack);
+    if (phase.canRender()) {
+      screenContext.canvas().submitRenderableComponent(
+          renderableComponent,
+          1,
+          1,
+          -1,
+          TextFlags.SHADOW
+      );
     }
 
-    size.setWidth((int) (renderableComponent.getWidth() + 2));
-    size.setHeight((int) (renderableComponent.getHeight() + 2));
+    size.setWidth(renderableComponent.getWidth() + 2);
+    size.setHeight(renderableComponent.getHeight() + 2);
   }
 
-  private void renderChannel(Channel channel, Stack stack, HudSize size) {
-    ComponentRenderer componentRenderer = this.labyAPI.renderPipeline().componentRenderer();
-    int x = 1;
-    int y = 1;
+  private void renderChannel(
+      Channel channel,
+      RenderPhase phase,
+      ScreenContext screenContext,
+      HudSize size
+  ) {
+    float x = 1;
+    float y = 1;
     Component channelNameComponent = null;
     if (this.config.prettyChannelName.get()) {
       String prettyName = channel.getPrettyName();
@@ -162,17 +172,20 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
     }
 
     RenderableComponent channelName = RenderableComponent.of(channelNameComponent);
-    if (stack != null) {
-      componentRenderer.builder()
-          .text(channelName)
-          .pos(x, y)
-          .render(stack);
+    if (phase.canRender()) {
+      screenContext.canvas().submitRenderableComponent(
+          channelName,
+          x,
+          y,
+          -1,
+          TextFlags.SHADOW
+      );
     }
 
-    size.setWidth((int) (x + channelName.getWidth() + 1));
+    size.setWidth(x + channelName.getWidth() + 1);
     x += 5;
     y += channelName.getHeight() + 1;
-    int rowHeight = (int) componentRenderer.height();
+    int rowHeight = (int) screenContext.canvas().getLineHeight();
 
     int maxUserIndex = this.config.maxDisplayedClients.get() - 1;
     List<User> users = channel.getUsers();
@@ -188,10 +201,11 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
       }
 
       userIndex++;
-      int userX = x + 2;
-      if (stack != null) {
+      float userX = x + 2;
+      if (phase.canRender()) {
         Icon icon = TeamSpeakUserIcon.of(user).icon();
-        icon.render(stack, userX, y, rowHeight);
+        //noinspection SuspiciousNameCombination
+        screenContext.canvas().submitIcon(icon, userX, y, rowHeight, rowHeight);
       }
 
       userX += rowHeight + 4;
@@ -210,16 +224,19 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
       }
 
       RenderableComponent userName = RenderableComponent.of(component);
-      if (stack != null) {
-        componentRenderer.builder()
-            .text(userName)
-            .pos(userX, y)
-            .render(stack);
+      if (phase.canRender()) {
+        screenContext.canvas().submitRenderableComponent(
+            userName,
+            userX,
+            y,
+            -1,
+            TextFlags.SHADOW
+        );
       }
 
       y += userName.getHeight() + 1;
       userX += userName.getWidth();
-      size.setWidth(Math.max(size.getWidth(), userX + 1));
+      size.setWidth(Math.max(size.getActualWidth(), userX + 1));
     }
 
     size.setHeight(y);

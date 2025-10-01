@@ -1,0 +1,46 @@
+{
+    "teamspeak": {
+        "settings": {
+            "name": "",
+            "enabled": {
+                "name": ""
+            },
+            "resolveAPIKey": {
+                "name": "",
+                "description": ""
+            },
+            "apiKey": {
+                "name": "",
+                "description": ""
+            },
+            "header": {
+                "authentication": {
+                    "name": ""
+                }
+            }
+        },
+        "hudWidget": {
+            "teamSpeak": {
+                "name": "",
+                "notConnected": "",
+                "invalidKey": "",
+                "invalidKeyManual": "",
+                "noSelectedServer": "",
+                "noSelectedChannel": "",
+                "displayAwayMessage": {
+                    "name": ""
+                },
+                "prettyChannelName": {
+                    "name": "",
+                    "description": ""
+                },
+                "displayServerQueries": {
+                    "name": ""
+                },
+                "maxDisplayedClients": {
+                    "name": ""
+                }
+            }
+        }
+    }
+}

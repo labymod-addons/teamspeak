@@ -1,1 +1,9 @@
-{}
+{
+    "teamspeak": {
+        "settings": {
+            "apiKey": {
+                "name": "Chave de API"
+            }
+        }
+    }
+}

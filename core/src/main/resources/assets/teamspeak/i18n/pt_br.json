@@ -4,6 +4,11 @@
             "apiKey": {
                 "name": "Chave de API"
             }
+        },
+        "hudWidget": {
+            "teamSpeak": {
+                "name": "TeamSpeak"
+            }
         }
     }
 }

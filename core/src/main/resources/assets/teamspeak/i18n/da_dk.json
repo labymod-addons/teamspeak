@@ -7,6 +7,9 @@
             "name": "TeamSpeak",
             "apiKey": {
                 "name": "API-nøgle"
+            },
+            "resolveAPIKey": {
+                "name": "Hent API-nøgle"
             }
         },
         "hudWidget": {

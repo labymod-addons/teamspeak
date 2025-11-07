@@ -8,6 +8,15 @@
             "resolveAPIKey": {
                 "name": "API Anahtarını Çözümle",
                 "description": "Otomatik olarak API Anahtarını çözümler"
+            },
+            "apiKey": {
+                "description": "TeamSpeak API Anahtarı şu adımları takip ederek bulunabilir: TeamSpeak’i açın -> Araçlar’a tıklayın -> Seçenekler -> Eklentiler -> Benim Eklentilerim -> “ClientQuery” Eklentisini arayın -> Ayarlar’a tıklayın ve API Anahtarını metin alanından kopyalayın.",
+                "name": "API Anahtarı"
+            },
+            "header": {
+                "authentication": {
+                    "name": "Kimlik Doğrulama"
+                }
             }
         }
     }

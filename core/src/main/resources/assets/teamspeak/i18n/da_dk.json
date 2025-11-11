@@ -9,14 +9,23 @@
                 "name": "API-nøgle"
             },
             "resolveAPIKey": {
-                "name": "Hent API-nøgle"
+                "name": "Hent API-nøgle",
+                "description": "Forsøger automatisk at hente din API-nøgle"
             }
         },
         "hudWidget": {
             "teamSpeak": {
                 "name": "TeamSpeak",
                 "notConnected": "Kunne ikke oprette forbindelse til TeamSpeak",
-                "noSelectedServer": "Du er ikke tilsluttet dig en server."
+                "noSelectedServer": "Du er ikke tilsluttet dig en server.",
+                "invalidKeyManual": "TeamSpeak afviste forbindelsen. Sørg venligst for, at API-nøglen er korrekt.",
+                "noSelectedChannel": "Du er ikke forbundet til en kanal.",
+                "displayAwayMessage": {
+                    "name": "Vis fraværsmelding"
+                },
+                "prettyChannelName": {
+                    "description": "Fjerner [lspacer], [rspacer], [cspacer] og [spacer]-præfikset fra kanalnavne"
+                }
             }
         }
     }

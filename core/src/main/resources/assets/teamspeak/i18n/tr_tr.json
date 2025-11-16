@@ -1,1 +1,14 @@
-{}
+{
+    "teamspeak": {
+        "settings": {
+            "name": "TeamSpeak",
+            "enabled": {
+                "name": "Aktif"
+            },
+            "resolveAPIKey": {
+                "name": "API Anahtarını Çözümle",
+                "description": "Otomatik olarak API Anahtarını çözümler"
+            }
+        }
+    }
+}

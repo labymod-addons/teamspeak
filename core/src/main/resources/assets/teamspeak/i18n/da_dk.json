@@ -25,6 +25,10 @@
                 },
                 "prettyChannelName": {
                     "description": "Fjerner [lspacer], [rspacer], [cspacer] og [spacer]-præfikset fra kanalnavne"
+                },
+                "invalidKey": "TeamSpeak afviste forbindelsen. Angiv venligst API-nøglen manuelt i TeamSpeak-tilføjelsesindstillingerne.",
+                "maxDisplayedClients": {
+                    "name": "Viste brugere"
                 }
             }
         }

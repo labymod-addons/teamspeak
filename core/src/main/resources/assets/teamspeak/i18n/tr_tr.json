@@ -23,7 +23,7 @@
             "teamSpeak": {
                 "name": "TeamSpeak",
                 "notConnected": "TeamSpeak’e bağlanılamadı",
-                "noSelectedChannel": "Bir kanala bağlı değilsiniz.",
+                "noSelectedChannel": "Bir kanala bağlı değilsin.",
                 "invalidKey": "TeamSpeak bağlantıyı reddetti. Lütfen TeamSpeak Eklenti ayarlarından API Anahtarını manuel olarak doldur.",
                 "invalidKeyManual": "TeamSpeak bağlantıyı reddetti. Lütfen API anahtarının doğru olduğundan emin ol.",
                 "noSelectedServer": "Herhangi bir sunucuya bağlı değilsin.",

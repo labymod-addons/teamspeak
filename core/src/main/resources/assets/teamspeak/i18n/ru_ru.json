@@ -1,1 +1,46 @@
-{}
+{
+    "teamspeak": {
+        "settings": {
+            "name": "TeamSpeak",
+            "enabled": {
+                "name": "Включено"
+            },
+            "resolveAPIKey": {
+                "name": "Извлекать API-ключ",
+                "description": "Автоматически выполнять попытку получения API-ключа."
+            },
+            "apiKey": {
+                "name": "API-ключ",
+                "description": "API-ключ TeamSpeak можно найти по этому пути: откройте TeamSpeak -> нажмите на Инструменты -> Параметры -> Аддоны -> найдите аддон «ClientQuery» -> нажмите на Параметры и скопируйте значение из поля API Key."
+            },
+            "header": {
+                "authentication": {
+                    "name": "Аутентификация"
+                }
+            }
+        },
+        "hudWidget": {
+            "teamSpeak": {
+                "name": "TeamSpeak",
+                "notConnected": "Не удалось подключиться к TeamSpeak",
+                "invalidKey": "TeamSpeak отклонил подключение. Пожалуйста, предоставьте API-ключ из настроек аддона TeamSpeak вручную.",
+                "invalidKeyManual": "TeamSpeak отклонил подключение. Убедитесь, что API-ключ верный.",
+                "noSelectedServer": "Вы не подключены к серверу.",
+                "noSelectedChannel": "Вы не подключены к каналу.",
+                "displayAwayMessage": {
+                    "name": "Отображать сообщение состояния «Отошёл»"
+                },
+                "prettyChannelName": {
+                    "name": "Краткое имя канала",
+                    "description": "Удаляет префиксы [lspacer], [rspacer], [cspacer] и [*spacer] из имён каналов."
+                },
+                "displayServerQueries": {
+                    "name": "Отображать Server Queries"
+                },
+                "maxDisplayedClients": {
+                    "name": "Отображаемые пользователи"
+                }
+            }
+        }
+    }
+}

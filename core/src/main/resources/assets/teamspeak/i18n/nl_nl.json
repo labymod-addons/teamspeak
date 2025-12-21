@@ -25,7 +25,8 @@
                 "notConnected": "Kan geen verbinding maken met TeamSpeak",
                 "invalidKey": "TeamSpeak weigerde de verbinding. Vul de API key handmatig in bij de TeamSpeak Addon-instellingen.",
                 "invalidKeyManual": "TeamSpeak weigerde de verbinding. Controleer of de API-sleutel klopt.",
-                "noSelectedServer": "Je bent niet verbonden met een server."
+                "noSelectedServer": "Je bent niet verbonden met een server.",
+                "noSelectedChannel": "Je bent niet verbonden met een channel"
             }
         }
     }

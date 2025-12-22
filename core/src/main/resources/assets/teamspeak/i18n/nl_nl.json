@@ -31,10 +31,14 @@
                     "name": "Afwezigheidsbericht weergeven"
                 },
                 "prettyChannelName": {
-                    "name": "Mooie kanaalnaam"
+                    "name": "Mooie kanaalnaam",
+                    "description": "Verwijder de [lspacer], [rspacer], [cspacer] & [*spacer] prefix van de kanaal namen"
                 },
                 "displayServerQueries": {
                     "name": "Server Queries weergeven"
+                },
+                "maxDisplayedClients": {
+                    "name": "Laat Gebruikers Zien"
                 }
             }
         }

@@ -6,7 +6,8 @@
             },
             "name": "TeamSpeak",
             "apiKey": {
-                "name": "API-nøgle"
+                "name": "API-nøgle",
+                "description": "Du kan finde TeamSpeak API-nøglen ved at følge disse trin: Åbn TeamSpeak -> Klik på Værktøjer -> Indstillinger -> Tilføjelser -> Mine tilføjelser -> Søg efter tilføjelsen \"ClientQuery\" -> Klik på Indstillinger, og kopier API-nøglen fra tekstfeltet."
             },
             "resolveAPIKey": {
                 "name": "Hent API-nøgle",

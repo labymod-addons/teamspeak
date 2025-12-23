@@ -12,6 +12,11 @@
             "resolveAPIKey": {
                 "name": "Hent API-nøgle",
                 "description": "Forsøger automatisk at hente din API-nøgle"
+            },
+            "header": {
+                "authentication": {
+                    "name": "Autentificering"
+                }
             }
         },
         "hudWidget": {

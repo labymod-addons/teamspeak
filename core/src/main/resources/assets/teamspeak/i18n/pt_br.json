@@ -8,7 +8,8 @@
         "hudWidget": {
             "teamSpeak": {
                 "name": "TeamSpeak",
-                "notConnected": "Não foi possível conectar ao TeamSpeak"
+                "notConnected": "Não foi possível conectar ao TeamSpeak",
+                "noSelectedServer": "Você não está conectado a um servidor."
             }
         }
     }

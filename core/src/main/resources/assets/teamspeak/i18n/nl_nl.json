@@ -26,7 +26,16 @@
                 "invalidKey": "TeamSpeak weigerde de verbinding. Vul de API key handmatig in bij de TeamSpeak Addon instellingen.",
                 "invalidKeyManual": "TeamSpeak weigerde de verbinding. Controleer of de API sleutel klopt.",
                 "noSelectedServer": "Je bent niet verbonden met een server.",
-                "noSelectedChannel": "Je bent niet verbonden met een channel."
+                "noSelectedChannel": "Je bent niet verbonden met een channel.",
+                "displayAwayMessage": {
+                    "name": "Afwezigheidsbericht weergeven"
+                },
+                "prettyChannelName": {
+                    "name": "Mooie kanaalnaam"
+                },
+                "displayServerQueries": {
+                    "name": "Server Queries weergeven"
+                }
             }
         }
     }

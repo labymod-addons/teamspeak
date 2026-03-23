@@ -30,7 +30,8 @@
                     "name": "Vis fraværsmelding"
                 },
                 "prettyChannelName": {
-                    "description": "Fjerner [lspacer], [rspacer], [cspacer] og [spacer]-præfikset fra kanalnavne"
+                    "description": "Fjerner [lspacer], [rspacer], [cspacer] og [spacer]-præfikset fra kanalnavne",
+                    "name": "Pænt kanalnavn"
                 },
                 "invalidKey": "TeamSpeak afviste forbindelsen. Angiv venligst API-nøglen manuelt i TeamSpeak-tilføjelsesindstillingerne.",
                 "maxDisplayedClients": {

@@ -1,17 +1,17 @@
 {
     "teamspeak": {
         "settings": {
-            "name": "Teamspeak",
+            "name": "TeamSpeak",
             "enabled": {
                 "name": "Ingeschakeld"
             },
             "resolveAPIKey": {
                 "name": "API-sleutel verifiëren",
-                "description": "Probeert automatisch je API-sleutel te verifiëren"
+                "description": "Probeert automatisch je API sleutel te verifiëren"
             },
             "apiKey": {
-                "name": "API-sleutel",
-                "description": "De TeamSpeak API-sleutel kan worden gevonden door de volgende stappen te volgen: Open TeamSpeak → Klik op Extra → Opties → Addons → Mijn Addons → Zoek naar de “ClientQuery”-addon → Klik op Instellingen en kopieer de API-sleutel uit het tekstveld."
+                "name": "API sleutel",
+                "description": "De TeamSpeak API-sleutel kan worden gevonden door de volgende stappen te volgen: Open TeamSpeak → Klik op Extra → Opties → Addons → Mijn Addons → Zoek naar de “ClientQuery”-addon → Klik op Instellingen en kopieer de API Key uit het tekstveld."
             },
             "header": {
                 "authentication": {

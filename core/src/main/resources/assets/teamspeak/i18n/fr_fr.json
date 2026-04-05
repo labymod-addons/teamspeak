@@ -4,6 +4,10 @@
             "name": "TeamSpeak",
             "enabled": {
                 "name": "Activé"
+            },
+            "resolveAPIKey": {
+                "name": "Résoudre la clé API",
+                "description": "Tente automatiquement de résoudre votre clé API"
             }
         }
     }

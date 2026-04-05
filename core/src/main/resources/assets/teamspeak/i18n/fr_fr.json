@@ -1,1 +1,10 @@
-{}
+{
+    "teamspeak": {
+        "settings": {
+            "name": "TeamSpeak",
+            "enabled": {
+                "name": "Activé"
+            }
+        }
+    }
+}

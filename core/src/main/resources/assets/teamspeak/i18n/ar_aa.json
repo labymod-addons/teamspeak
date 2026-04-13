@@ -1,7 +1,13 @@
 {
     "teamspeak": {
         "settings": {
-            "name": "تيم سبيك"
+            "name": "تيم سبيك",
+            "enabled": {
+                "name": "مُفعّل"
+            },
+            "resolveAPIKey": {
+                "name": "حل مفتاح واجهة برمجة التطبيقات (API Key)"
+            }
         }
     }
 }

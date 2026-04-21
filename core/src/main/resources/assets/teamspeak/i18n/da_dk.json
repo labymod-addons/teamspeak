@@ -36,6 +36,9 @@
                 "invalidKey": "TeamSpeak afviste forbindelsen. Angiv venligst API-nøglen manuelt i TeamSpeak-tilføjelsesindstillingerne.",
                 "maxDisplayedClients": {
                     "name": "Viste brugere"
+                },
+                "displayServerQueries": {
+                    "name": "Vis serverforespørgsler"
                 }
             }
         }

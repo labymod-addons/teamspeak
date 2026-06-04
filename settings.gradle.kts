@@ -1,7 +1,7 @@
 rootProject.name = "teamspeak"
 
 pluginManagement {
-    val labyGradlePluginVersion = "0.8.0"
+    val labyGradlePluginVersion = "0.8.1"
 
     buildscript {
         repositories {

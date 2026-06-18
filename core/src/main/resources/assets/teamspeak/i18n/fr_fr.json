@@ -10,8 +10,8 @@
                 "description": "Tente automatiquement de résoudre votre clé API"
             },
             "apiKey": {
-                "name": "clé API",
-                "description": "La clé API TeamSpeak peut être trouvée en suivant ces étapes : Ouvrez TeamSpeak → Cliquez sur Tools → Options → Addons → My Addons → Recherchez l’addon \"ClientQuery\" → Cliquez sur Settings et copiez la clé API depuis le champ de texte."
+                "name": "Clé API",
+                "description": "La clé API TeamSpeak peut être trouvée en suivant ces étapes : Ouvrez TeamSpeak → Cliquez sur Tools → Options → Addons → My Addons → Recherchez l'addon \"ClientQuery\" → Cliquez sur Settings et copiez la clé API depuis le champ de texte."
             },
             "header": {
                 "authentication": {
@@ -22,18 +22,18 @@
         "hudWidget": {
             "teamSpeak": {
                 "notConnected": "Impossible de se connecter à TeamSpeak",
-                "invalidKey": "TeamSpeak a refusé la connexion. Veuillez entrer manuellement la clé API dans les paramètres de l’addon TeamSpeak.",
+                "invalidKey": "TeamSpeak a refusé la connexion. Veuillez entrer manuellement la clé API dans les paramètres de l'addon TeamSpeak.",
                 "invalidKeyManual": "TeamSpeak a refusé la connexion. Veuillez vérifier que la clé API est correcte.",
-                "noSelectedServer": "Vous n’êtes pas connecté à un serveur.",
-                "noSelectedChannel": "Vous n’êtes pas connecté à un channel.",
+                "noSelectedServer": "Vous n'êtes pas connecté à un serveur.",
+                "noSelectedChannel": "Vous n'êtes pas connecté à un channel.",
                 "displayAwayMessage": {
-                    "name": "Afficher le message d’absence"
+                    "name": "Afficher le message d'absence"
                 },
                 "prettyChannelName": {
-                    "name": "Nom de channel simplifié"
+                    "name": "Nom de chaîne esthétique"
                 },
                 "displayServerQueries": {
-                    "name": "Afficher les Server Queries"
+                    "name": "Afficher les requêtes du serveur"
                 },
                 "maxDisplayedClients": {
                     "name": "Utilisateurs affichés"

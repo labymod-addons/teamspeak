@@ -36,13 +36,15 @@ public class SelectedListener extends DefaultListener {
         return true;
       }
 
-      teamSpeakAPI.setInvalidKey(false);
       String[] schandlers = schandlerListAnswer.split("\\|");
       for (String schandler : schandlers) {
         if (!schandler.startsWith("schandlerid=")) {
           return false;
         }
       }
+
+      // A valid serverconnectionhandlerlist response proves the key works; only clear here.
+      teamSpeakAPI.setInvalidKey(false);
 
       for (String schandler : schandlers) {
         Integer schandlerId = this.get(schandler, "schandlerid", Integer.class);

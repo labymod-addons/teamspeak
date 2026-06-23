@@ -16,7 +16,6 @@
 
 package net.labymod.addons.teamspeak.core.listener;
 
-import java.io.IOException;
 import net.labymod.addons.teamspeak.core.TeamSpeak;
 import net.labymod.addons.teamspeak.core.TeamSpeakConfiguration;
 import net.labymod.addons.teamspeak.core.teamspeak.DefaultTeamSpeakAPI;
@@ -67,20 +66,9 @@ public class ConfigurationSaveListener {
     }
 
     if (refreshTeamSpeakAPI) {
-      try {
-        this.teamSpeakAPI.stop();
-      } catch (IOException e) {
-        e.printStackTrace();
-      }
-
+      this.teamSpeakAPI.stop();
       if (currentEnabled) {
-        new Thread(() -> {
-          try {
-            this.teamSpeakAPI.initialize();
-          } catch (IOException e) {
-            e.printStackTrace();
-          }
-        }).start();
+        this.teamSpeakAPI.start();
       }
     }
   }

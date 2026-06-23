@@ -16,19 +16,15 @@
 
 package net.labymod.addons.teamspeak.core.teamspeak;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.net.ConnectException;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Supplier;
 import javax.inject.Singleton;
 import net.labymod.addons.teamspeak.api.TeamSpeakAPI;
 import net.labymod.addons.teamspeak.api.listener.Listener;
@@ -45,42 +41,71 @@ import net.labymod.addons.teamspeak.core.teamspeak.listener.ConnectStatusChange;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.CurrentServerConnectionChangedListener;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.SelectedListener;
 import net.labymod.addons.teamspeak.core.teamspeak.listener.TalkStatusChangeListener;
-import net.labymod.addons.teamspeak.core.teamspeak.misc.ReconnectController;
 import net.labymod.addons.teamspeak.core.teamspeak.misc.TeamSpeakController;
 import net.labymod.addons.teamspeak.core.teamspeak.models.DefaultServer;
 import net.labymod.api.models.Implements;
 import net.labymod.api.util.ThreadSafe;
+import net.labymod.api.util.io.LabyExecutors;
 
+/**
+ * Lifecycle owner of the TeamSpeak connection.
+ *
+ * <p>Threads (all daemon, owned here):
+ * <ul>
+ *   <li>{@code reader} - one reusable single-thread executor that performs only blocking IO:
+ *   {@link #connect(int)} opens a {@link TeamSpeakConnection} and blocks in its read loop.</li>
+ *   <li>{@code scheduler} - one single-thread scheduled executor that owns ALL lifecycle state
+ *   transitions (start/stop, connected flag, heartbeat, reconnect, generation). Because every
+ *   transition runs here, they can never race each other.</li>
+ * </ul>
+ *
+ * <p>The model and the {@link #requests} list are mutated only on the render thread via
+ * {@link #handleLine(String, int)}, which the reader posts per line. The HUD reads the same model on
+ * the render thread, so no locking is needed there. The {@link #generation} counter (bumped only on
+ * the scheduler in {@link #startInternal()}/{@link #stopInternal()}) lets stale connections
+ * short-circuit, and {@link #reconnectScheduled} collapses concurrent reconnect triggers into one.
+ */
 @Singleton
 @Implements(TeamSpeakAPI.class)
 public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
+  private static final long HEARTBEAT_SECONDS = 5L;
+  private static final long RECONNECT_SECONDS = 10L;
+
   private final TeamSpeakAuthenticator authenticator;
   private final TeamSpeakController controller;
-  private final ReconnectController reconnectController;
   private final TeamSpeak teamSpeak;
   private final List<Listener> listeners;
-
   private final List<Request> requests;
-  private Socket socket;
-  private PrintWriter outputStream;
-  private BufferedReader inputStream;
 
-  private boolean connected;
+  private final ExecutorService reader;
+  private final ScheduledExecutorService scheduler;
+  private final AtomicBoolean reconnectScheduled;
+
+  private volatile TeamSpeakConnection connection;
+  private volatile ScheduledFuture<?> heartbeatFuture;
+  private volatile ScheduledFuture<?> reconnectFuture;
+
+  private volatile boolean stopped;
+  private volatile boolean shuttingDown;
+  private volatile int generation;
+  private volatile boolean connected;
+  private volatile boolean invalidKey;
+  private volatile boolean connectFailureLogged;
 
   private int clientId;
   private int channelId;
-
-  private boolean manualStop;
-  private boolean invalidKey;
 
   public DefaultTeamSpeakAPI(TeamSpeak teamSpeak) {
     this.teamSpeak = teamSpeak;
     this.authenticator = new TeamSpeakAuthenticator(teamSpeak, this);
     this.controller = new TeamSpeakController(this);
-    this.reconnectController = new ReconnectController(this);
     this.requests = new ArrayList<>();
     this.listeners = new ArrayList<>();
+
+    this.reader = LabyExecutors.newSingleThreadExecutor("TeamSpeak-Reader-%d");
+    this.scheduler = LabyExecutors.newSingleThreadScheduledExecutor("TeamSpeak-Scheduler-%d");
+    this.reconnectScheduled = new AtomicBoolean(false);
 
     this.listeners.add(new ClientMovedListener());
     this.listeners.add(new SelectedListener());
@@ -93,121 +118,254 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
     this.listeners.add(new ChannelEditedListener());
   }
 
-  public void initialize() throws IOException {
-    if (this.socket != null && !this.socket.isClosed()) {
-      throw new IllegalStateException("Socket is already initialized!");
+  public void start() {
+    this.submitScheduler(this::startInternal);
+  }
+
+  public void stop() {
+    this.submitScheduler(this::stopInternal);
+  }
+
+  public void shutdown() {
+    this.shuttingDown = true;
+    this.stopped = true;
+    TeamSpeakConnection connection = this.connection;
+    if (connection != null) {
+      connection.close();
     }
 
-    this.manualStop = false;
-    this.invalidKey = false;
-    this.reset();
+    this.reader.shutdownNow();
+    this.scheduler.shutdownNow();
+  }
 
-    try {
-      this.teamSpeak.logger().info("Connecting to TeamSpeak client...");
-      this.socket = new Socket("127.0.0.1", 25639);
-    } catch (ConnectException e) {
-      this.teamSpeak.logger().warn("Could not connect to TeamSpeak client!");
-      this.reconnectController.start();
+  private void startInternal() {
+    if (this.shuttingDown) {
       return;
     }
 
-    this.outputStream = new PrintWriter(
-        new OutputStreamWriter(this.socket.getOutputStream(), StandardCharsets.UTF_8),
-        true
-    );
+    this.stopped = false;
+    int generation = ++this.generation;
+    this.submitReader(() -> this.connect(generation));
+  }
 
-    this.inputStream = new BufferedReader(
-        new InputStreamReader(this.socket.getInputStream(), StandardCharsets.UTF_8)
-    );
+  private void stopInternal() {
+    this.generation++;
+    this.stopped = true;
+    this.connected = false;
+    this.cancelHeartbeat();
+    this.cancelReconnect();
+    this.reconnectScheduled.set(false);
 
-    new Thread(() -> {
-      while (!this.manualStop && this.socket.isConnected() && !this.socket.isClosed()) {
-        if (this.connected) {
-          this.outputStream.println("whoami");
-          if (this.outputStream.checkError()) {
-            this.updateConnected(false);
+    TeamSpeakConnection connection = this.connection;
+    if (connection != null) {
+      connection.close();
+      this.connection = null;
+    }
 
-            try {
-              this.socket.close();
-            } catch (IOException e) {
-              e.printStackTrace();
-            }
-            this.teamSpeak.logger().warn("3Connection to TeamSpeak client lost.");
-            this.reconnectController.start();
-            return;
-          }
-        }
+    ThreadSafe.executeOnRenderThread(this::reset);
+  }
 
-        try {
-          Thread.sleep(5000L);
-        } catch (InterruptedException e) {
-          e.printStackTrace();
-        }
+  private void connect(int generation) {
+    if (this.stopped || generation != this.generation) {
+      return;
+    }
+
+    if (!this.connectFailureLogged) {
+      this.teamSpeak.logger().info("Connecting to TeamSpeak client...");
+    }
+
+    TeamSpeakConnection connection = new TeamSpeakConnection(this, generation);
+    try {
+      connection.open();
+    } catch (IOException exception) {
+      if (!this.connectFailureLogged) {
+        this.connectFailureLogged = true;
+        this.teamSpeak.logger().warn(
+            "Could not connect to TeamSpeak client, retrying every " + RECONNECT_SECONDS
+                + " seconds...");
       }
 
-      if (!this.manualStop) {
-        this.updateConnected(false);
+      this.onConnectionLost(generation);
+      return;
+    }
 
-        try {
-          this.socket.close();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-        this.teamSpeak.logger().warn("1Connection to TeamSpeak client lost.");
-        this.reconnectController.start();
-      }
-    }).start();
+    this.connectFailureLogged = false;
 
+    // Publish before the read loop so a concurrent stop() can close the socket and unblock it.
+    this.connection = connection;
+    if (this.stopped || generation != this.generation) {
+      connection.close();
+      return;
+    }
+
+    this.invalidKey = false;
+    ThreadSafe.executeOnRenderThread(this::reset);
+
+    if (!this.authenticateOnConnect()) {
+      connection.close();
+      return;
+    }
+
+    this.clientNotifyRegister(0);
+    this.submitScheduler(() -> this.onConnected(connection, generation));
+
+    connection.readLoop();
+
+    if (this.stopped) {
+      return;
+    }
+
+    this.onConnectionLost(generation);
+  }
+
+  private void onConnected(TeamSpeakConnection connection, int generation) {
+    if (this.stopped || generation != this.generation) {
+      connection.close();
+      return;
+    }
+
+    this.connected = true;
+    this.startHeartbeat();
+    this.teamSpeak.logger().info("Successfully connected to the TeamSpeak client.");
+  }
+
+  private boolean authenticateOnConnect() {
     TeamSpeakConfiguration configuration = this.teamSpeak.configuration();
     if (configuration.resolveAPIKey().get()) {
       if (!this.authenticator.authenticate()) {
         this.invalidKey = true;
       }
-    } else {
-      String apiKey = configuration.apiKey().get().trim();
-      if (apiKey.isEmpty()) {
-        throw new IllegalStateException("Cannot authenticate with an empty API key!");
-      }
 
-      this.authenticate(apiKey);
+      return true;
     }
 
-    this.updateConnected(true);
-    this.clientNotifyRegister(0);
-    this.teamSpeak.logger().info("Successfully connected to the TeamSpeak client.");
-
-    while (!this.manualStop && this.socket.isConnected() && !this.socket.isClosed()) {
-      String line = null;
-      try {
-        if (this.connected && this.inputStream.ready() && !this.socket.isClosed()) {
-          while ((line = this.inputStream.readLine()) != null) {
-            this.messageReceived(line);
-          }
-        }
-
-        Thread.sleep(100L);
-      } catch (Exception e) {
-        e.printStackTrace();
-      }
+    String apiKey = configuration.apiKey().get().trim();
+    if (apiKey.isEmpty()) {
+      this.invalidKey = true;
+      return false;
     }
 
-    if (!this.manualStop) {
-      this.updateConnected(false);
+    this.authenticate(apiKey);
+    return true;
+  }
 
-      try {
-        this.socket.close();
-      } catch (IOException e) {
-        e.printStackTrace();
+  private void onConnectionLost(int generation) {
+    this.submitScheduler(() -> {
+      if (this.stopped || generation != this.generation) {
+        return;
       }
 
-      this.teamSpeak.logger().warn("2Connection to TeamSpeak client lost.");
-      this.reconnectController.start();
+      this.connected = false;
+      this.cancelHeartbeat();
+
+      TeamSpeakConnection connection = this.connection;
+      if (connection != null) {
+        connection.close();
+        this.connection = null;
+      }
+
+      if (this.reconnectScheduled.compareAndSet(false, true)) {
+        this.reconnectFuture = this.scheduler.schedule(
+            () -> this.reconnect(generation),
+            RECONNECT_SECONDS,
+            TimeUnit.SECONDS
+        );
+      }
+    });
+  }
+
+  private void reconnect(int generation) {
+    this.reconnectScheduled.set(false);
+    if (this.stopped || generation != this.generation) {
+      return;
+    }
+
+    this.submitReader(() -> this.connect(generation));
+  }
+
+  private void startHeartbeat() {
+    this.cancelHeartbeat();
+    this.heartbeatFuture = this.scheduler.scheduleAtFixedRate(
+        this::heartbeat,
+        HEARTBEAT_SECONDS,
+        HEARTBEAT_SECONDS,
+        TimeUnit.SECONDS
+    );
+  }
+
+  private void heartbeat() {
+    try {
+      if (this.stopped || !this.connected) {
+        return;
+      }
+
+      TeamSpeakConnection connection = this.connection;
+      if (connection == null) {
+        return;
+      }
+
+      if (!connection.write("whoami")) {
+        this.onConnectionLost(connection.generation());
+      }
+    } catch (Throwable throwable) {
+      this.teamSpeak.logger().error("Error in TeamSpeak heartbeat", throwable);
     }
   }
 
-  private void messageReceived(String line) {
-    //System.out.println("Received: " + line);
-    if (line.isEmpty()) {
+  private void cancelHeartbeat() {
+    ScheduledFuture<?> future = this.heartbeatFuture;
+    if (future != null) {
+      future.cancel(false);
+      this.heartbeatFuture = null;
+    }
+  }
+
+  private void cancelReconnect() {
+    ScheduledFuture<?> future = this.reconnectFuture;
+    if (future != null) {
+      future.cancel(false);
+      this.reconnectFuture = null;
+    }
+  }
+
+  private void submitReader(Runnable runnable) {
+    try {
+      this.reader.execute(runnable);
+    } catch (RejectedExecutionException exception) {
+      // Executor was shut down; nothing to do.
+    }
+  }
+
+  private void submitScheduler(Runnable runnable) {
+    try {
+      this.scheduler.execute(runnable);
+    } catch (RejectedExecutionException exception) {
+      // Executor was shut down; nothing to do.
+    }
+  }
+
+  void dispatchLine(String line, int generation) {
+    if (this.isDebug()) {
+      this.teamSpeak.logger().info("[TeamSpeak <<] " + line);
+    }
+
+    ThreadSafe.executeOnRenderThread(() -> this.handleLine(line, generation));
+  }
+
+  private boolean isDebug() {
+    return this.teamSpeak.configuration().debug().get();
+  }
+
+  private static String maskApiKey(String message) {
+    if (message.startsWith("auth apikey=")) {
+      return "auth apikey=***";
+    }
+
+    return message;
+  }
+
+  private void handleLine(String line, int generation) {
+    if (this.stopped || generation != this.generation || line.isEmpty()) {
       return;
     }
 
@@ -235,7 +393,7 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
         continue;
       }
 
-      if (this.executeAndWait(() -> request.handle(s[0], line))) {
+      if (request.handle(s[0], line)) {
         handledRequest = true;
       }
     }
@@ -246,26 +404,9 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
     for (Listener listener : this.listeners) {
       if (listener.getIdentifier().equals(s[0])) {
-        ThreadSafe.executeOnRenderThread(() -> {
-          listener.execute(this, s);
-        });
+        listener.execute(this, s);
       }
     }
-  }
-
-  private <T> T executeAndWait(Supplier<T> supplier) {
-    AtomicReference<T> value = new AtomicReference<>(null);
-    AtomicBoolean executed = new AtomicBoolean(false);
-    ThreadSafe.executeOnRenderThread(() -> {
-      value.set(supplier.get());
-      executed.set(true);
-    });
-
-    while (!executed.get()) {
-      // Wait
-    }
-
-    return value.get();
   }
 
   @Override
@@ -274,40 +415,30 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
   }
 
   public void clientNotifyRegister(int id) {
-    //this.outputStream.println("clientnotifyregister schandlerid=" + id + " event=any");
     for (Listener listener : this.listeners) {
       if (!listener.needsToBeRegistered()) {
         continue;
       }
 
-      this.outputStream.println(
-          "clientnotifyregister schandlerid=" + id + " event=" + listener.getIdentifier());
+      this.write("clientnotifyregister schandlerid=" + id + " event=" + listener.getIdentifier());
     }
   }
 
-  public boolean isRunning() {
-    return this.socket != null;
-  }
-
-  public PrintWriter getOutputStream() {
-    return this.outputStream;
-  }
-
-  public BufferedReader getInputStream() {
-    return this.inputStream;
-  }
-
-  private void updateConnected(boolean connected) {
-    this.connected = connected;
-  }
-
-  public boolean authenticate(String apiKey) {
-    if (this.socket == null || this.socket.isClosed()) {
+  private boolean write(String message) {
+    TeamSpeakConnection connection = this.connection;
+    if (connection == null) {
       return false;
     }
 
-    this.outputStream.println("auth apikey=" + apiKey);
-    return true;
+    if (this.isDebug()) {
+      this.teamSpeak.logger().info("[TeamSpeak >>] " + maskApiKey(message));
+    }
+
+    return connection.write(message);
+  }
+
+  public boolean authenticate(String apiKey) {
+    return this.write("auth apikey=" + apiKey);
   }
 
   @Override
@@ -335,7 +466,7 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
   @Override
   public void query(String query) {
-    this.outputStream.println(query);
+    this.write(query);
   }
 
   @Override
@@ -364,17 +495,6 @@ public class DefaultTeamSpeakAPI implements TeamSpeakAPI {
 
   public TeamSpeakController controller() {
     return this.controller;
-  }
-
-  public void stop() throws IOException {
-    if (this.socket == null) {
-      return;
-    }
-
-    this.manualStop = true;
-    this.socket.close();
-    this.connected = false;
-    this.reset();
   }
 
   private void reset() {

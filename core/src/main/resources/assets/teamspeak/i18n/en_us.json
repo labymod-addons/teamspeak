@@ -13,9 +13,16 @@
         "name": "API Key",
         "description": "The TeamSpeak API Key can be found by following these steps: Open TeamSpeak -> Click on Tools -> Options -> Addons -> My Addons -> Search for the \"ClientQuery\" Addon -> Click on Settings and copy the API Key from the text field."
       },
+      "debug": {
+        "name": "Debug Logging",
+        "description": "Logs all raw TeamSpeak ClientQuery traffic (sent and received) to the game console for troubleshooting. The API key is masked."
+      },
       "header": {
         "authentication": {
           "name": "Authentication"
+        },
+        "debug": {
+          "name": "Debug"
         }
       }
     },

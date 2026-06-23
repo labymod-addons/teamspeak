@@ -16,7 +16,6 @@
 
 package net.labymod.addons.teamspeak.core;
 
-import java.io.IOException;
 import javax.inject.Singleton;
 import net.labymod.addons.teamspeak.core.generated.DefaultReferenceStorage;
 import net.labymod.addons.teamspeak.core.hud.TeamSpeakHudWidget;
@@ -25,6 +24,7 @@ import net.labymod.addons.teamspeak.core.teamspeak.DefaultTeamSpeakAPI;
 import net.labymod.api.addon.LabyAddon;
 import net.labymod.api.models.addon.annotation.AddonMain;
 import net.labymod.api.reference.annotation.Referenceable;
+import net.labymod.api.util.concurrent.task.Task;
 
 @AddonMain
 @Singleton
@@ -38,14 +38,10 @@ public class TeamSpeak extends LabyAddon<TeamSpeakConfiguration> {
     DefaultTeamSpeakAPI teamSpeakAPI = (DefaultTeamSpeakAPI) this.references().teamSpeakAPI();
     this.registerListener(new ConfigurationSaveListener(this, teamSpeakAPI));
 
+    Task.builderShutdown(teamSpeakAPI::shutdown).build();
+
     if (this.configuration().enabled().get()) {
-      new Thread(() -> {
-        try {
-          teamSpeakAPI.initialize();
-        } catch (IOException e) {
-          e.printStackTrace();
-        }
-      }).start();
+      teamSpeakAPI.start();
     }
 
     this.labyAPI().hudWidgetRegistry().register(new TeamSpeakHudWidget(this, teamSpeakAPI));

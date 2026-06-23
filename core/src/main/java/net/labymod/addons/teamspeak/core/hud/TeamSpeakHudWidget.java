@@ -30,12 +30,12 @@ import net.labymod.api.Laby;
 import net.labymod.api.client.component.Component;
 import net.labymod.api.client.component.format.NamedTextColor;
 import net.labymod.api.client.component.format.TextDecoration;
+import net.labymod.api.client.gfx.pipeline.renderer.text.TextRenderingOptions;
 import net.labymod.api.client.gui.hud.hudwidget.HudWidgetConfig;
 import net.labymod.api.client.gui.hud.hudwidget.SimpleHudWidget;
 import net.labymod.api.client.gui.hud.position.HudSize;
 import net.labymod.api.client.gui.icon.Icon;
 import net.labymod.api.client.gui.screen.ScreenContext;
-import net.labymod.api.client.gui.screen.state.TextFlags;
 import net.labymod.api.client.gui.screen.widget.widgets.input.SliderWidget.SliderSetting;
 import net.labymod.api.client.gui.screen.widget.widgets.input.SwitchWidget.SwitchSetting;
 import net.labymod.api.client.render.font.RenderableComponent;
@@ -143,7 +143,7 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
           1,
           1,
           -1,
-          TextFlags.SHADOW
+          TextRenderingOptions.SHADOW
       );
     }
 
@@ -178,7 +178,7 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
           x,
           y,
           -1,
-          TextFlags.SHADOW
+          TextRenderingOptions.SHADOW
       );
     }
 
@@ -230,7 +230,7 @@ public class TeamSpeakHudWidget extends SimpleHudWidget<TeamSpeakHudWidgetConfig
             userX,
             y,
             -1,
-            TextFlags.SHADOW
+            TextRenderingOptions.SHADOW
         );
       }
 

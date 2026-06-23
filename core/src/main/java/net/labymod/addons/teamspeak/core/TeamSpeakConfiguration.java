@@ -20,8 +20,10 @@ import net.labymod.api.addon.AddonConfig;
 import net.labymod.api.client.gui.screen.widget.widgets.input.SwitchWidget.SwitchSetting;
 import net.labymod.api.client.gui.screen.widget.widgets.input.TextFieldWidget.TextFieldSetting;
 import net.labymod.api.configuration.loader.property.ConfigProperty;
+import net.labymod.api.configuration.settings.annotation.SettingDevelopment;
 import net.labymod.api.configuration.settings.annotation.SettingRequires;
 import net.labymod.api.configuration.settings.annotation.SettingSection;
+import net.labymod.api.loader.platform.DevelopmentEnvironmentOnly;
 
 public class TeamSpeakConfiguration extends AddonConfig {
 
@@ -36,6 +38,11 @@ public class TeamSpeakConfiguration extends AddonConfig {
   @TextFieldSetting
   private final ConfigProperty<String> apiKey = new ConfigProperty<>("");
 
+  @SettingSection("debug")
+  @SettingDevelopment
+  @SwitchSetting
+  private final ConfigProperty<Boolean> debug = new ConfigProperty<>(false);
+
   @Override
   public ConfigProperty<Boolean> enabled() {
     return this.enabled;
@@ -47,5 +54,9 @@ public class TeamSpeakConfiguration extends AddonConfig {
 
   public ConfigProperty<String> apiKey() {
     return this.apiKey;
+  }
+
+  public ConfigProperty<Boolean> debug() {
+    return this.debug;
   }
 }

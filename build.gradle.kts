@@ -1,10 +1,11 @@
+import com.diffplug.spotless.LineEnding
 import net.labymod.labygradle.common.extension.model.labymod.ReleaseChannels
 
 plugins {
     id("java-library")
     id("net.labymod.labygradle")
     id("net.labymod.labygradle.addon")
-    id("org.cadixdev.licenser") version ("0.6.1")
+    id("com.diffplug.spotless") version ("8.0.0")
 }
 
 group = "org.example"
@@ -41,7 +42,7 @@ subprojects {
     plugins.apply("java-library")
     plugins.apply("net.labymod.labygradle")
     plugins.apply("net.labymod.labygradle.addon")
-    plugins.apply("org.cadixdev.licenser")
+    plugins.apply("com.diffplug.spotless")
 
     repositories {
         maven("https://libraries.minecraft.net/")
@@ -49,8 +50,16 @@ subprojects {
         mavenLocal()
     }
 
-    license {
-        header(rootProject.file("gradle/LICENSE-HEADER.txt"))
-        newLine.set(true)
+    spotless {
+        lineEndings = LineEnding.UNIX
+
+        java {
+            licenseHeaderFile(rootProject.file("gradle/LICENSE-HEADER.txt"))
+        }
+    }
+
+    extensions.findByType(JavaPluginExtension::class.java)?.apply {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 }

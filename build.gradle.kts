@@ -34,7 +34,6 @@ labyMod {
         author = "LabyMedia GmbH"
         minecraftVersion = "*"
         version = System.getenv().getOrDefault("VERSION", "0.0.1")
-        releaseChannel = ReleaseChannels.INTERNAL
     }
 }
 
